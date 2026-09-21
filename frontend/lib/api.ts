@@ -15,7 +15,7 @@ export class ApiError extends Error {
 async function apiFetch(path: string, init?: RequestInit) {
   const {
     data: { session },
-  } = await supabase.auth.getSession();
+  } = await supabase.auth.refreshSession();
 
   if (!session) {
     throw new ApiError(401, "Not signed in");
