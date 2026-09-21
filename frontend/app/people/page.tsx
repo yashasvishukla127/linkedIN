@@ -105,25 +105,25 @@ export default function PeoplePage() {
             return (
               <li
                 key={profile.user_id}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+                className="flex flex-col items-stretch gap-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-950"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   {profile.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={profile.avatar_url}
                       alt=""
-                      className="h-10 w-10 rounded-full object-cover"
+                      className="h-10 w-10 shrink-0 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="h-10 w-10 rounded-full bg-zinc-100 dark:bg-zinc-800" />
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-zinc-100 dark:bg-zinc-800" />
                   )}
-                  <div>
-                    <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-950 dark:text-zinc-50">
                       {profile.name}
                     </p>
                     {profile.headline ? (
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">
                         {profile.headline}
                       </p>
                     ) : null}
@@ -160,7 +160,7 @@ function ConnectButton({
 }) {
   if (status === "pending") {
     return (
-      <span className="shrink-0 rounded-full border border-zinc-200 px-4 py-1.5 text-sm font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+      <span className="w-full shrink-0 rounded-full border border-zinc-200 px-4 py-1.5 text-center text-sm font-medium text-zinc-500 sm:w-auto dark:border-zinc-800 dark:text-zinc-400">
         Request pending
       </span>
     );
@@ -168,7 +168,7 @@ function ConnectButton({
 
   if (status === "connected") {
     return (
-      <span className="shrink-0 rounded-full border border-zinc-200 px-4 py-1.5 text-sm font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+      <span className="w-full shrink-0 rounded-full border border-zinc-200 px-4 py-1.5 text-center text-sm font-medium text-zinc-500 sm:w-auto dark:border-zinc-800 dark:text-zinc-400">
         Connected
       </span>
     );
@@ -179,7 +179,7 @@ function ConnectButton({
       type="button"
       disabled={status === "sending"}
       onClick={onClick}
-      className="shrink-0 rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+      className="w-full shrink-0 rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto"
     >
       {status === "sending"
         ? "Sending…"
