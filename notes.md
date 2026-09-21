@@ -1,3 +1,6 @@
+# run backend
+uvicorn app.main:app --reload
+
 ## test running error
 
 @ → %40

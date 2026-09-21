@@ -108,3 +108,27 @@ async def list_connections(
         {"me": me_uuid},
     )
     return [dict(r._mapping) for r in result.all()]
+
+
+
+
+
+
+
+@router.get("/pending")
+async def list_pending(
+    me: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    me_uuid = uuid.UUID(me)
+    result = await db.execute(
+        text("SELECT id, requester_id, "
+             "CASE WHEN user_id_a = :me THEN user_id_b ELSE user_id_a END AS other_user_id, "
+             "status, updated_at FROM connections "
+             "WHERE (user_id_a = :me OR user_id_b = :me) AND status = 'PENDING'"),
+        {"me": me_uuid},
+    )
+    rows = [dict(r._mapping) for r in result.all()]
+    for r in rows:
+        r["direction"] = "outgoing" if r["requester_id"] == me_uuid else "incoming"
+    return rows
