@@ -39,6 +39,39 @@ async function apiFetch(path: string, init?: RequestInit) {
   return res.json();
 }
 
+export type Connection = {
+  id: string;
+  other_user_id: string;
+  updated_at: string;
+};
+
+export type PendingConnection = {
+  id: string;
+  requester_id: string;
+  other_user_id: string;
+  status: string;
+  direction: "incoming" | "outgoing";
+};
+
+export type Message = {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  created_at: string;
+};
+
+export function sendMessage(
+  otherUserId: string,
+  content: string,
+): Promise<{ id: string; created_at: string }> {
+  return apiFetch(`/messages/${otherUserId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+}
+
 export function sendConnectionRequest(otherUserId: string) {
   return apiFetch(`/connections/${otherUserId}/request`, { method: "POST" });
 }
@@ -47,10 +80,10 @@ export function acceptConnectionRequest(otherUserId: string) {
   return apiFetch(`/connections/${otherUserId}/accept`, { method: "PATCH" });
 }
 
-export function listConnections() {
+export function listConnections(): Promise<Connection[]> {
   return apiFetch("/connections");
 }
 
-export function listPendingConnections() {
+export function listPendingConnections(): Promise<PendingConnection[]> {
   return apiFetch("/connections/pending");
 }

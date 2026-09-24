@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
-import { ApiError, sendConnectionRequest } from "@/lib/api";
+import {
+  ApiError,
+  acceptConnectionRequest,
+  listConnections,
+  listPendingConnections,
+  sendConnectionRequest,
+  type Connection,
+  type PendingConnection,
+} from "@/lib/api";
 
 type Profile = {
   user_id: string;
@@ -12,7 +21,32 @@ type Profile = {
   avatar_url: string | null;
 };
 
-type ConnectStatus = "idle" | "sending" | "pending" | "connected" | "error";
+type ConnectStatus =
+  | "idle"
+  | "sending"
+  | "sent"
+  | "incoming"
+  | "accepting"
+  | "connected"
+  | "error";
+
+function statusMapFromLists(
+  connections: Connection[],
+  pending: PendingConnection[],
+): Record<string, ConnectStatus> {
+  const next: Record<string, ConnectStatus> = {};
+
+  for (const row of pending) {
+    next[row.other_user_id] =
+      row.direction === "incoming" ? "incoming" : "sent";
+  }
+
+  for (const row of connections) {
+    next[row.other_user_id] = "connected";
+  }
+
+  return next;
+}
 
 export default function PeoplePage() {
   const { session } = useAuth();
@@ -25,28 +59,42 @@ export default function PeoplePage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadProfiles() {
+    async function load() {
       setLoading(true);
       setLoadError(null);
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, name, headline, avatar_url")
-        .neq("user_id", session?.user.id)
-        .order("name");
+      try {
+        const [profilesResult, connections, pending] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("user_id, name, headline, avatar_url")
+            .neq("user_id", session?.user.id)
+            .order("name"),
+          listConnections(),
+          listPendingConnections(),
+        ]);
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      if (error) {
-        setLoadError(error.message);
-      } else {
-        setProfiles(data ?? []);
+        if (profilesResult.error) {
+          setLoadError(profilesResult.error.message);
+          return;
+        }
+
+        setProfiles(profilesResult.data ?? []);
+        setStatuses(statusMapFromLists(connections, pending));
+      } catch (err) {
+        if (cancelled) return;
+        setLoadError(
+          err instanceof Error ? err.message : "Something went wrong",
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     }
 
     if (session?.user.id) {
-      loadProfiles();
+      load();
     }
 
     return () => {
@@ -64,12 +112,37 @@ export default function PeoplePage() {
 
     try {
       await sendConnectionRequest(otherUserId);
-      setStatuses((prev) => ({ ...prev, [otherUserId]: "pending" }));
+      setStatuses((prev) => ({ ...prev, [otherUserId]: "sent" }));
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        const already =
-          /connected/i.test(err.message) ? "connected" : "pending";
+        const already = /connected/i.test(err.message) ? "connected" : "sent";
         setStatuses((prev) => ({ ...prev, [otherUserId]: already }));
+        return;
+      }
+
+      setStatuses((prev) => ({ ...prev, [otherUserId]: "error" }));
+      setErrors((prev) => ({
+        ...prev,
+        [otherUserId]:
+          err instanceof Error ? err.message : "Something went wrong",
+      }));
+    }
+  }
+
+  async function handleAccept(otherUserId: string) {
+    setStatuses((prev) => ({ ...prev, [otherUserId]: "accepting" }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[otherUserId];
+      return next;
+    });
+
+    try {
+      await acceptConnectionRequest(otherUserId);
+      setStatuses((prev) => ({ ...prev, [otherUserId]: "connected" }));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setStatuses((prev) => ({ ...prev, [otherUserId]: "connected" }));
         return;
       }
 
@@ -139,8 +212,10 @@ export default function PeoplePage() {
                 </div>
 
                 <ConnectButton
+                  otherUserId={profile.user_id}
                   status={status}
-                  onClick={() => handleConnect(profile.user_id)}
+                  onConnect={() => handleConnect(profile.user_id)}
+                  onAccept={() => handleAccept(profile.user_id)}
                 />
               </li>
             );
@@ -152,25 +227,45 @@ export default function PeoplePage() {
 }
 
 function ConnectButton({
+  otherUserId,
   status,
-  onClick,
+  onConnect,
+  onAccept,
 }: {
+  otherUserId: string;
   status: ConnectStatus;
-  onClick: () => void;
+  onConnect: () => void;
+  onAccept: () => void;
 }) {
-  if (status === "pending") {
+  if (status === "sent") {
     return (
       <span className="w-full shrink-0 rounded-full border border-zinc-200 px-4 py-1.5 text-center text-sm font-medium text-zinc-500 sm:w-auto dark:border-zinc-800 dark:text-zinc-400">
-        Request pending
+        Request sent
       </span>
+    );
+  }
+
+  if (status === "incoming" || status === "accepting") {
+    return (
+      <button
+        type="button"
+        disabled={status === "accepting"}
+        onClick={onAccept}
+        className="w-full shrink-0 rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto"
+      >
+        {status === "accepting" ? "Accepting…" : "Accept"}
+      </button>
     );
   }
 
   if (status === "connected") {
     return (
-      <span className="w-full shrink-0 rounded-full border border-zinc-200 px-4 py-1.5 text-center text-sm font-medium text-zinc-500 sm:w-auto dark:border-zinc-800 dark:text-zinc-400">
-        Connected
-      </span>
+      <Link
+        href={`/messages/${otherUserId}`}
+        className="w-full shrink-0 rounded-full border border-zinc-200 px-4 py-1.5 text-center text-sm font-medium text-zinc-950 sm:w-auto dark:border-zinc-800 dark:text-zinc-50"
+      >
+        Message
+      </Link>
     );
   }
 
@@ -178,7 +273,7 @@ function ConnectButton({
     <button
       type="button"
       disabled={status === "sending"}
-      onClick={onClick}
+      onClick={onConnect}
       className="w-full shrink-0 rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto"
     >
       {status === "sending"

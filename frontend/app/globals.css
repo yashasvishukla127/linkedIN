@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 :root {
@@ -10,6 +11,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: "Space Grotesk", var(--font-geist-sans), sans-serif;
+  --font-body: "Work Sans", var(--font-geist-sans), sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,4 +26,14 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+:root {
+  --color-ink: #17140F;
+  --color-paper: #EFEDE7;
+  --color-flare: #D98A2B;
+  --color-slate: #3B5563;
+  --color-line: #D9D3C4;
+  --color-line-dark: #2B2822;
+  --color-success: #3F7A54;
+  --color-danger: #B23A2E;
 }
