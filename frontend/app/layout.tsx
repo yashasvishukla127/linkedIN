@@ -3,6 +3,11 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Navbar } from "@/components/Navbar";
 import "./globals.css";
+import { Fraunces, Inter } from 'next/font/google';
+
+
+const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

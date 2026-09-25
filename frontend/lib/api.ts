@@ -72,12 +72,28 @@ export function sendMessage(
   });
 }
 
-export function sendConnectionRequest(otherUserId: string) {
-  return apiFetch(`/connections/${otherUserId}/request`, { method: "POST" });
+export async function sendConnectionRequest(otherUserId: string) {
+  const result = await apiFetch(`/connections/${otherUserId}/request`, {
+    method: "POST",
+  });
+  window.dispatchEvent(new Event("connections:changed"));
+  return result;
 }
 
-export function acceptConnectionRequest(otherUserId: string) {
-  return apiFetch(`/connections/${otherUserId}/accept`, { method: "PATCH" });
+export async function cancelConnectionRequest(otherUserId: string) {
+  const result = await apiFetch(`/connections/${otherUserId}/request`, {
+    method: "DELETE",
+  });
+  window.dispatchEvent(new Event("connections:changed"));
+  return result;
+}
+
+export async function acceptConnectionRequest(otherUserId: string) {
+  const result = await apiFetch(`/connections/${otherUserId}/accept`, {
+    method: "PATCH",
+  });
+  window.dispatchEvent(new Event("connections:changed"));
+  return result;
 }
 
 export function listConnections(): Promise<Connection[]> {
@@ -86,4 +102,23 @@ export function listConnections(): Promise<Connection[]> {
 
 export function listPendingConnections(): Promise<PendingConnection[]> {
   return apiFetch("/connections/pending");
+}
+
+export function getUnreadMessageCount(): Promise<{ count: number }> {
+  return apiFetch("/messages/unread-count");
+}
+
+export function markMessagesRead(otherUserId: string): Promise<{ status: string }> {
+  return apiFetch(`/messages/${otherUserId}/read`, { method: "PATCH" });
+}
+
+export type Conversation = {
+  other_user_id: string;
+  last_message: string | null;
+  last_message_at: string | null;
+  has_unread: boolean;
+};
+
+export function listConversations(): Promise<Conversation[]> {
+  return apiFetch("/messages/conversations");
 }

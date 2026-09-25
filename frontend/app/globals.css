@@ -2,38 +2,57 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f1e7;
+  --foreground: #2b2b24;
+
+  --color-cream: #f6f1e7;
+  --color-white: #ffffff;
+  --color-border: #ddd5c0;
+
+  --color-ink: #1b2415;
+  --color-primary-dark: #35431f;
+
+  --color-olive: #6e7c46;
+  --color-terracotta: #c98a54;
+
+  --color-tan: #ece0c5;
+  --color-tan-text: #6b5738;
+
+  --color-success-bg: #e4ecd9;
+  --color-success-text: #3c5223;
+
+  --color-text-body: #2b2b24;
+  --color-text-muted: #6b6b5e;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-display: "Space Grotesk", var(--font-geist-sans), sans-serif;
-  --font-body: "Work Sans", var(--font-geist-sans), sans-serif;
-}
+@theme {
+  --color-cream: #f6f1e7;
+  --color-white: #ffffff;
+  --color-border: #ddd5c0;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: #1b2415;
+  --color-primary-dark: #35431f;
+
+  --color-olive: #6e7c46;
+  --color-terracotta: #c98a54;
+
+  --color-tan: #ece0c5;
+  --color-tan-text: #6b5738;
+
+  --color-success-bg: #e4ecd9;
+  --color-success-text: #3c5223;
+
+  --color-text-body: #2b2b24;
+  --color-text-muted: #6b6b5e;
+
+  --font-sans: "Work Sans", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-serif: Georgia, serif;
 }
 
 body {
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-:root {
-  --color-ink: #17140F;
-  --color-paper: #EFEDE7;
-  --color-flare: #D98A2B;
-  --color-slate: #3B5563;
-  --color-line: #D9D3C4;
-  --color-line-dark: #2B2822;
-  --color-success: #3F7A54;
-  --color-danger: #B23A2E;
+  font-family: "Work Sans", sans-serif;
 }

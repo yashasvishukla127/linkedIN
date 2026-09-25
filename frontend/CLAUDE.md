@@ -15,6 +15,11 @@ Backend endpoints (all require the Bearer header above):
 - GET /connections -> [{id, other_user_id, updated_at}]  (accepted only)
 - GET /connections/pending -> [{id, requester_id, other_user_id, status, direction: "incoming"|"outgoing"}]
 - POST /messages/{other_user_id} {content: string} -> {id, created_at} or 403 if not connected
+- GET /messages/unread-count -> {count: int}
+- PATCH /messages/{other_user_id}/read -> {status: "ok"}   (call when a thread is opened)
+- GET /messages/conversations -> [{other_user_id, last_message, last_message_at, has_unread: bool}]
+
+- DELETE /connections/{other_user_id}/request -> {status: "CANCELLED"} or 404
 
 Supabase tables readable directly by the client (RLS already enforces "own rows only"):
 - profiles (user_id, name, headline, bio, avatar_url, background_url) — all authenticated users can read all profiles

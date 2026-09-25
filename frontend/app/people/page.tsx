@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   ApiError,
   acceptConnectionRequest,
+  cancelConnectionRequest,
   listConnections,
   listPendingConnections,
   sendConnectionRequest,
@@ -25,6 +26,7 @@ type ConnectStatus =
   | "idle"
   | "sending"
   | "sent"
+  | "cancelling"
   | "incoming"
   | "accepting"
   | "connected"
@@ -129,6 +131,48 @@ export default function PeoplePage() {
     }
   }
 
+  async function refreshStatusFor(otherUserId: string) {
+    try {
+      const [connections, pending] = await Promise.all([
+        listConnections(),
+        listPendingConnections(),
+      ]);
+      const map = statusMapFromLists(connections, pending);
+      setStatuses((prev) => ({
+        ...prev,
+        [otherUserId]: map[otherUserId] ?? "idle",
+      }));
+    } catch {
+      setStatuses((prev) => ({ ...prev, [otherUserId]: "idle" }));
+    }
+  }
+
+  async function handleCancel(otherUserId: string) {
+    setStatuses((prev) => ({ ...prev, [otherUserId]: "cancelling" }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[otherUserId];
+      return next;
+    });
+
+    try {
+      await cancelConnectionRequest(otherUserId);
+      setStatuses((prev) => ({ ...prev, [otherUserId]: "idle" }));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        await refreshStatusFor(otherUserId);
+        return;
+      }
+
+      setStatuses((prev) => ({ ...prev, [otherUserId]: "error" }));
+      setErrors((prev) => ({
+        ...prev,
+        [otherUserId]:
+          err instanceof Error ? err.message : "Something went wrong",
+      }));
+    }
+  }
+
   async function handleAccept(otherUserId: string) {
     setStatuses((prev) => ({ ...prev, [otherUserId]: "accepting" }));
     setErrors((prev) => {
@@ -216,6 +260,7 @@ export default function PeoplePage() {
                   status={status}
                   onConnect={() => handleConnect(profile.user_id)}
                   onAccept={() => handleAccept(profile.user_id)}
+                  onCancel={() => handleCancel(profile.user_id)}
                 />
               </li>
             );
@@ -231,17 +276,24 @@ function ConnectButton({
   status,
   onConnect,
   onAccept,
+  onCancel,
 }: {
   otherUserId: string;
   status: ConnectStatus;
   onConnect: () => void;
   onAccept: () => void;
+  onCancel: () => void;
 }) {
-  if (status === "sent") {
+  if (status === "sent" || status === "cancelling") {
     return (
-      <span className="w-full shrink-0 rounded-full border border-zinc-200 px-4 py-1.5 text-center text-sm font-medium text-zinc-500 sm:w-auto dark:border-zinc-800 dark:text-zinc-400">
-        Request sent
-      </span>
+      <button
+        type="button"
+        disabled={status === "cancelling"}
+        onClick={onCancel}
+        className="w-full shrink-0 rounded-full border border-zinc-200 px-4 py-1.5 text-center text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto dark:border-zinc-800 dark:text-zinc-50"
+      >
+        {status === "cancelling" ? "Cancelling…" : "Cancel Request"}
+      </button>
     );
   }
 

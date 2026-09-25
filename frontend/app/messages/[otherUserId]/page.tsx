@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { markMessagesRead } from "@/lib/api";
 import MessageThread from "@/components/MessageThread";
 
 type Profile = {
@@ -33,6 +34,14 @@ export default function MessagesPage() {
     return () => {
       cancelled = true;
     };
+  }, [otherUserId]);
+
+  useEffect(() => {
+    if (!otherUserId) return;
+
+    markMessagesRead(otherUserId)
+      .then(() => window.dispatchEvent(new Event("messages:read")))
+      .catch(() => {});
   }, [otherUserId]);
 
   return (

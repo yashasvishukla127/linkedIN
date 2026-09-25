@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { sendMessage, type Message } from "@/lib/api";
+import { useMessageInserts } from "@/hooks/useMessageInserts";
 
 const MESSAGE_COLUMNS = "id, sender_id, receiver_id, content, created_at";
 
@@ -66,43 +67,28 @@ export default function MessageThread({
     };
   }, [me, otherUserId]);
 
-  useEffect(() => {
-    if (!me) return;
+  const insertFilters = useMemo(
+    () =>
+      me
+        ? [
+            {
+              filter: `sender_id=eq.${me}`,
+              onInsert: (row: Message) => {
+                if (row.receiver_id === otherUserId) addMessage(row);
+              },
+            },
+            {
+              filter: `receiver_id=eq.${me}`,
+              onInsert: (row: Message) => {
+                if (row.sender_id === otherUserId) addMessage(row);
+              },
+            },
+          ]
+        : [],
+    [me, otherUserId, addMessage],
+  );
 
-    const channel = supabase
-      .channel(`messages:${me}:${otherUserId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `sender_id=eq.${me}`,
-        },
-        (payload) => {
-          const row = payload.new as Message;
-          if (row.receiver_id === otherUserId) addMessage(row);
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `receiver_id=eq.${me}`,
-        },
-        (payload) => {
-          const row = payload.new as Message;
-          if (row.sender_id === otherUserId) addMessage(row);
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [me, otherUserId, addMessage]);
+  useMessageInserts(me ? `messages:${me}:${otherUserId}` : null, insertFilters);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
